@@ -1,10 +1,12 @@
 [package]
 name = "ribzip2"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 authors = ["Philipp Vollmer"]
 description = "a bzip2 cli written in pure rust"
+readme = "../README.md"
+repository = "https://github.com/torfmaster/ribzip2"
 
 [dependencies]
 structopt = "0.3.25"
