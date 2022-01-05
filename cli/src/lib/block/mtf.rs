@@ -42,7 +42,14 @@ fn bring_to_front_of_dict(position: u8, dict: &mut VecDeque<u8>) {
 }
 
 fn find_pos(i: u8, dict: &VecDeque<u8>) -> u8 {
-    dict.iter().enumerate().find(|(_, x)| **x == i).unwrap().0 as u8
+    let mut position =0;
+    for dict_element in dict.iter() {
+        if *dict_element == i {
+            return position;
+        }
+        position+=1;
+    }
+    unreachable!()
 }
 
 pub(crate) fn inverse_mtf(input: &[u8], dictionary: &[u8]) -> Vec<u8> {
