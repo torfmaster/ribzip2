@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{VecDeque};
 
 pub struct MtfData {
     pub encoded: Vec<u8>,
@@ -15,21 +15,25 @@ pub fn mtf(mtf_input: &[u8]) -> MtfData {
         bring_to_front_of_dict(pos, &mut dict);
     }
 
-    let used_symbols = used_symbols.iter().cloned().collect::<Vec<_>>();
     MtfData {
         encoded: mtf_result,
         used_symbols,
     }
 }
 
-fn create_dict(input: &[u8]) -> (VecDeque<u8>, HashSet<u8>) {
-    let mut dict = HashSet::<u8>::new();
+fn create_dict(input: &[u8]) -> (VecDeque<u8>, Vec<u8>) {
+    let mut dict = vec![false;255];
     for i in input {
-        dict.insert(*i);
+        dict[*i as usize]=true;
     }
-    let mut dict_vec = dict.clone().into_iter().collect::<Vec<_>>();
+    let used_symbols = dict
+        .iter()
+        .enumerate()
+        .filter( |x| *x.1 ).map(|x| x.0 as u8).collect::<Vec<_>>();
+    let mut dict_vec = used_symbols.clone();
+
     dict_vec.sort_unstable();
-    (dict_vec.into(), dict)
+    (dict_vec.into(), used_symbols)
 }
 
 fn bring_to_front_of_dict(position: u8, dict: &mut VecDeque<u8>) {
@@ -38,7 +42,14 @@ fn bring_to_front_of_dict(position: u8, dict: &mut VecDeque<u8>) {
 }
 
 fn find_pos(i: u8, dict: &VecDeque<u8>) -> u8 {
-    dict.iter().enumerate().find(|(_, x)| **x == i).unwrap().0 as u8
+    let mut position =0;
+    for dict_element in dict.iter() {
+        if *dict_element == i {
+            return position;
+        }
+        position+=1;
+    }
+    unreachable!()
 }
 
 pub(crate) fn inverse_mtf(input: &[u8], dictionary: &[u8]) -> Vec<u8> {
