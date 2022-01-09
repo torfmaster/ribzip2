@@ -22,7 +22,7 @@ pub fn mtf(mtf_input: &[u8]) -> MtfData {
 }
 
 fn create_dict(input: &[u8]) -> (VecDeque<u8>, Vec<u8>) {
-    let mut dict = vec![false;255];
+    let mut dict = vec![false;256];
     for i in input {
         dict[*i as usize]=true;
     }
