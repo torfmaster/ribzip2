@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
 
 #[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub(crate) enum ZleSymbol {
@@ -74,21 +73,13 @@ fn encode_zero_amount(number_of_zeros: usize) -> Vec<ZleSymbol> {
 pub(crate) fn zle_transform(
     input: Vec<u8>,
     alphabet_size: usize,
-) -> (Vec<ZleSymbol>, HashMap<ZleSymbol, usize>) {
-    let mut propability_map = HashMap::<ZleSymbol, usize>::new();
-    let mut symbol_set_before = HashSet::<u8>::new();
-
-    for sym in input.iter() {
-        symbol_set_before.insert(*sym);
-    }
-
-    let mut unused_symbols = (0..alphabet_size).map(|x| x as u8).collect::<HashSet<_>>();
+) -> (Vec<ZleSymbol>, PropabilityMap) {
+    // nicht verwendete Symbole müssen korrekt reportet werden
+    let mut propability_map = PropabilityMap::create(alphabet_size);
 
     let mut zle_result = Vec::<ZleSymbol>::new();
     let mut zero_count = 0;
     for i in input {
-        unused_symbols.remove(&i);
-
         if i == 0 {
             zero_count += 1;
         } else {
@@ -96,45 +87,20 @@ pub(crate) fn zle_transform(
                 let zle_encoded = encode_zero_amount(zero_count);
                 zle_result.extend(zle_encoded.clone());
                 for x in zle_encoded.iter() {
-                    match propability_map.get_mut(x) {
-                        Some(value) => {
-                            *value += 1;
-                        }
-                        None => {
-                            propability_map.insert(x.clone(), 1);
-                        }
-                    }
+                    propability_map.report_symbol(x);
                 }
             }
             zero_count = 0;
             zle_result.push(ZleSymbol::Number(i));
-            match propability_map.get_mut(&ZleSymbol::Number(i)) {
-                Some(value) => {
-                    *value += 1;
-                }
-                None => {
-                    propability_map.insert(ZleSymbol::Number(i), 1);
-                }
-            }
+            propability_map.report_symbol(&ZleSymbol::Number(i));
         }
     }
     if zero_count > 0 {
         let zle_encoded = encode_zero_amount(zero_count);
         zle_result.extend(zle_encoded.clone());
         for x in zle_encoded.iter() {
-            match propability_map.get_mut(x) {
-                Some(value) => {
-                    *value += 1;
-                }
-                None => {
-                    propability_map.insert(x.clone(), 1);
-                }
-            }
+            propability_map.report_symbol(x);
         }
-    }
-
-    for not_encoded in unused_symbols.iter() {
-        propability_map.insert(ZleSymbol::Number(*not_encoded), 0);
     }
 
     (zle_result, propability_map)
@@ -177,6 +143,41 @@ fn decode_zero_amount(input: &[ZleSymbol]) -> usize {
         }
     }
     number - 1
+}
+
+pub (crate) struct PropabilityMap {
+    frequencies: Vec<usize>
+}
+
+impl PropabilityMap {
+    pub fn iterator(self) -> impl Iterator<Item = (ZleSymbol, usize)> {
+        self.frequencies.into_iter().enumerate().map(|(symbol, frequency)| match symbol {
+            0 => (ZleSymbol::RunA, frequency),
+            1 => (ZleSymbol::RunB, frequency),
+            x => (ZleSymbol::Number((x-1) as u8), frequency),
+        })
+    }
+
+    fn create(size: usize) -> Self {
+        PropabilityMap {
+            frequencies: vec![0;size+1]
+        }
+    }
+
+    fn report_symbol(&mut self, symbol: &ZleSymbol) {
+        match symbol {
+            ZleSymbol::RunA => {
+                self.frequencies[0]+=1;
+            },
+            ZleSymbol::RunB => {
+                self.frequencies[1]+=1;
+
+            },
+            ZleSymbol::Number(i) => {
+                self.frequencies[*i as usize+1]+=1;
+            },
+        }
+    }
 }
 
 #[cfg(test)]
@@ -257,15 +258,15 @@ mod test {
 
     #[test]
     fn encodes_zeros() {
-        let encoded = zle_transform(vec![0, 0, 0], 1).0;
-        assert_eq!(encoded, vec![ZleSymbol::RunA, ZleSymbol::RunA]);
+        let encoded = zle_transform(vec![0, 0, 0],1);
+        assert_eq!(encoded.0, vec![ZleSymbol::RunA, ZleSymbol::RunA]);
     }
 
     #[test]
     fn encodes_zeros_and_numbers() {
-        let encoded = zle_transform(vec![1, 0, 0, 0], 2).0;
+        let encoded = zle_transform(vec![1, 0, 0, 0],2);
         assert_eq!(
-            encoded,
+            encoded.0,
             vec![ZleSymbol::Number(1), ZleSymbol::RunA, ZleSymbol::RunA]
         );
     }
@@ -278,7 +279,7 @@ mod test {
 
     #[test]
     fn encodes_zeros_and_trailing_numbers() {
-        let encoded = zle_transform(vec![1, 0, 0, 0, 2], 3).0;
+        let encoded = zle_transform(vec![1, 0, 0, 0, 2],3).0;
         assert_eq!(
             encoded,
             vec![
@@ -303,15 +304,15 @@ mod test {
 
     #[test]
     fn encodes_numbers_and_trailing_zeroes() {
-        let encoded = zle_transform(vec![1, 0, 0, 0, 2, 0, 0], 3).0;
+        let encoded = zle_transform(vec![1, 0, 0, 0, 2, 0, 0],3);
         assert_eq!(
-            encoded,
+            encoded.0,
             vec![
                 ZleSymbol::Number(1),
                 ZleSymbol::RunA,
                 ZleSymbol::RunA,
                 ZleSymbol::Number(2),
-                ZleSymbol::RunB
+                ZleSymbol::RunB,
             ]
         );
     }

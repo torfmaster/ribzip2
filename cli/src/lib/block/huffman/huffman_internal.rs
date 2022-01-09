@@ -1,7 +1,7 @@
 use crate::bitwise::bitwriter::{increment_symbol, Bit};
 
-use crate::lib::block::zle::ZleSymbol;
-use std::{collections::HashMap, fmt::Debug, iter::repeat};
+use crate::lib::block::zle::{ZleSymbol, PropabilityMap};
+use std::{fmt::Debug, iter::repeat};
 
 use super::package_merge::compute_lis;
 
@@ -53,14 +53,10 @@ pub(crate) struct CanonicalCodeTable<T>(pub(crate) Vec<CanonicalCodeTableEntry<T
 /// The code tables are then limited to 20 bit length using the package merge algorithm.
 /// This restriction is due to the original implementation of bzip2 and hence cannot be dropped.
 pub(crate) fn compute_huffman(
-    frequency_table: FrequencyTable<ZleSymbol>,
+    frequency_table: PropabilityMap,
 ) -> CodeTable<HuffmanSymbol<ZleSymbol>> {
-    let mut frequency_table = frequency_table
-        .into_iter()
-        .map(|entry| FrequencyTableEntry {
-            frequency: entry.frequency,
-            symbol: HuffmanSymbol::NormalSymbol(entry.symbol),
-        })
+    let mut frequency_table = frequency_table.iterator()
+        .map(|(symbol, frequency)| FrequencyTableEntry {  frequency, symbol: HuffmanSymbol::NormalSymbol(symbol), } )
         .collect::<Vec<_>>();
 
     frequency_table.push(FrequencyTableEntry {
@@ -168,19 +164,6 @@ pub(crate) struct FrequencyTableEntry<T> {
     pub(crate) symbol: T,
 }
 
-pub(crate) type FrequencyTable<T> = Vec<FrequencyTableEntry<T>>;
-
-pub(crate) fn convert_to_frequency_table<T: Clone>(input: HashMap<T, usize>) -> FrequencyTable<T> {
-    let mut out = Vec::new();
-    for (symbol, frequency) in input.iter() {
-        out.push(FrequencyTableEntry {
-            symbol: symbol.clone(),
-            frequency: *frequency,
-        });
-    }
-    out
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -227,29 +210,5 @@ mod test {
             ]),
             canonical
         );
-    }
-
-    #[test]
-    pub fn computes() {
-        let table = vec![
-            FrequencyTableEntry {
-                frequency: 1,
-                symbol: ZleSymbol::Number(0),
-            },
-            FrequencyTableEntry {
-                frequency: 2,
-                symbol: ZleSymbol::Number(1),
-            },
-            FrequencyTableEntry {
-                frequency: 10,
-                symbol: ZleSymbol::RunA,
-            },
-            FrequencyTableEntry {
-                frequency: 3,
-                symbol: ZleSymbol::RunB,
-            },
-        ];
-        let table = compute_huffman(table).canonicalize();
-        dbg!(table);
     }
 }
