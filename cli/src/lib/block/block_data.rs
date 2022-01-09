@@ -32,15 +32,11 @@ pub fn generate_block_data(input: &[u8]) -> (Vec<Bit>, u32) {
     // data
     for symbol in zle_data.iter() {
         let symbol = HuffmanSymbol::NormalSymbol(symbol.clone());
-        let mut symbol_to_write = None;
         for table_entry in code_table.0.iter() {
             if table_entry.symbol == symbol {
-                symbol_to_write= Some(table_entry.code.clone());
+                output.append(&mut table_entry.code.clone());
+                break;
             }
-        }
-        match symbol_to_write {
-            Some(mut symbol) => { output.append(&mut symbol) },
-            None => todo!(),
         }
     }
     // write eob marker
