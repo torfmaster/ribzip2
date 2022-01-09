@@ -313,7 +313,6 @@ mod test {
                 ZleSymbol::RunA,
                 ZleSymbol::Number(2),
                 ZleSymbol::RunB,
-                ZleSymbol::Number(255)
             ]
         );
     }
