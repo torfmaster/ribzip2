@@ -1,4 +1,4 @@
-use crate::{bitwise::bitwriter::{Bit, convert_to_code_pad_to_15_bits, convert_to_code_pad_to_byte, convert_to_code_pad_to_bytes}, lib::block::{bwt::bwt, code_table::encode_code_table, crc32::crc32, huffman::{HuffmanSymbol, compute_huffman, convert_to_frequency_table}, mtf::mtf, rle::rle, selectors::create_selectors, symbol_map::get_symbol_table, zle::zle_transform}};
+use crate::{bitwise::bitwriter::{Bit, convert_to_code_pad_to_15_bits, convert_to_code_pad_to_byte, convert_to_code_pad_to_bytes}, lib::block::{bwt::bwt, code_table::encode_code_table, crc32::crc32, huffman::{HuffmanSymbol, compute_huffman}, mtf::mtf, rle::rle, selectors::create_selectors, symbol_map::get_symbol_table, zle::zle_transform}};
 
 pub fn generate_block_data(input: &[u8]) -> (Vec<Bit>, u32) {
     let mut output = Vec::<Bit>::new();
@@ -9,8 +9,7 @@ pub fn generate_block_data(input: &[u8]) -> (Vec<Bit>, u32) {
     let mtf_data = mtf(&bwt_data.data);
     let (zle_data, frequencies) = zle_transform(mtf_data.encoded, mtf_data.used_symbols.len());
 
-    let frequency_table = convert_to_frequency_table(frequencies);
-    let code_table = compute_huffman(frequency_table).canonicalize();
+    let code_table = compute_huffman(frequencies).canonicalize();
     let mut selectors = create_selectors(zle_data.len() + 1);
     let mut symbol_map = get_symbol_table(mtf_data.used_symbols);
     let mut tree = encode_code_table(code_table.clone());
@@ -33,10 +32,15 @@ pub fn generate_block_data(input: &[u8]) -> (Vec<Bit>, u32) {
     // data
     for symbol in zle_data.iter() {
         let symbol = HuffmanSymbol::NormalSymbol(symbol.clone());
+        let mut symbol_to_write = None;
         for table_entry in code_table.0.iter() {
             if table_entry.symbol == symbol {
-                output.append(&mut table_entry.code.clone())
+                symbol_to_write= Some(table_entry.code.clone());
             }
+        }
+        match symbol_to_write {
+            Some(mut symbol) => { output.append(&mut symbol) },
+            None => todo!(),
         }
     }
     // write eob marker
