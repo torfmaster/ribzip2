@@ -24,6 +24,10 @@ considered work-in-progress and lacks many features of the original implementati
  * drop-in replacement for C libzip2
  * drop-in replacement for the C bzip2/bunzip2 binary
 
+## Publishing
+
+We use the crate `cargo-workspaces` for publishing releases manually. Currently, there is no automation in place.
+
 # Contribute!
 
 Contributions are very welcome (issues, pull-requests, and comments). Find your issue under "issues".
