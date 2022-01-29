@@ -131,11 +131,6 @@ enum CoinEntryType {
 mod test {
 
     use super::*;
-    #[test]
-    pub fn compute_code() {
-        let res = compute_lis(&[0, 1, 2, 3, 4, 5, 6, 7], 20);
-        dbg!(res);
-    }
 
     #[test]
     pub fn creates_packages_of_value_1() {

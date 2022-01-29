@@ -1,4 +1,4 @@
-use crate::bitwise::{bitreader::BitReader, bitwriter::Bit};
+use crate::lib::bitwise::{bitreader::BitReader, Bit};
 
 use crate::lib::block::zle::ZleSymbol;
 
@@ -62,7 +62,10 @@ fn read_from_table(
 mod test {
     use std::io::Cursor;
 
-    use crate::bitwise::{bitreader::BitReaderImpl, bitwriter::{Bit, BitWriter, BitWriterImpl}};
+    use crate::lib::bitwise::{
+        bitreader::BitReaderImpl,
+        bitwriter::{BitWriter, BitWriterImpl},
+    };
 
     use crate::lib::block::huffman::CanonicalCodeTableEntry;
 

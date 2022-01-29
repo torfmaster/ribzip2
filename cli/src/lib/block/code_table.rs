@@ -1,8 +1,15 @@
-use crate::{bitwise::{bitreader::BitReader, bitwriter::{Bit, convert_to_code_pad_to_n_bits, convert_to_number}}, lib::block::delta::DeltaSymbol};
+use crate::{
+    lib::bitwise::{
+        bitreader::BitReader,
+        bitwriter::{convert_to_code_pad_to_n_bits, convert_to_number},
+    },
+    lib::{bitwise::Bit, block::delta::DeltaSymbol},
+};
 
-use super::{delta::{DeltaEncoded, encode_delta}, huffman::CanonicalCodeTable};
-
-
+use super::{
+    delta::{encode_delta, DeltaEncoded},
+    huffman::CanonicalCodeTable,
+};
 
 pub(crate) fn encode_code_table<T>(table: CanonicalCodeTable<T>) -> Vec<Bit> {
     let code_lengths = table
@@ -80,8 +87,10 @@ where
 mod test {
     use std::io::Cursor;
 
-
-    use crate::bitwise::{bitreader::BitReaderImpl, bitwriter::{BitWriter, BitWriterImpl}};
+    use crate::lib::bitwise::{
+        bitreader::BitReaderImpl,
+        bitwriter::{BitWriter, BitWriterImpl},
+    };
 
     use super::*;
 

@@ -1,13 +1,11 @@
+use lib::bitwise::bitreader::BitReaderImpl;
+use lib::block::symbol_statistics::EncodingStrategy;
+use lib::stream::{decode_stream, encode_stream};
 use std::fs::File;
 use std::path::PathBuf;
 use std::{ffi::OsString, io::BufWriter};
-use bitwise::bitreader::BitReaderImpl;
 use structopt::StructOpt;
 
-use stream::{write_stream, write_stream_data};
-
-mod stream;
-mod bitwise;
 mod lib;
 
 #[derive(StructOpt)]
@@ -21,6 +19,19 @@ enum Opt {
         input: Vec<PathBuf>,
         #[structopt(default_value = "1", long)]
         threads: usize,
+        #[structopt(subcommand)]
+        encoding_options: Option<EncodingOptions>,
+    },
+}
+
+#[derive(StructOpt, Clone, Copy)]
+pub(crate) enum EncodingOptions {
+    Single,
+    KMeans {
+        #[structopt(default_value = "3", long)]
+        iterations: usize,
+        #[structopt(default_value = "6", long)]
+        num_tables: usize,
     },
 }
 
@@ -34,10 +45,14 @@ fn main() {
                 let out_file = File::create(out_file_name).expect("Could not create file.");
                 let mut in_file = File::open(file_name).unwrap();
                 let mut in_file_bit_reader = BitReaderImpl::from_reader(&mut in_file);
-                write_stream(&mut in_file_bit_reader, out_file).unwrap();
+                decode_stream(&mut in_file_bit_reader, out_file).unwrap();
             }
         }
-        Opt::Compress { input, threads } => {
+        Opt::Compress {
+            input,
+            threads,
+            encoding_options,
+        } => {
             for file_name in input {
                 let mut out_file_name = file_name.clone();
                 let extension = out_file_name.extension().map(|x| {
@@ -58,7 +73,17 @@ fn main() {
                 let out_file = File::create(out_file_name).expect("Could not create File.");
                 let mut out_file = BufWriter::new(out_file);
                 let mut in_file = File::open(file_name).unwrap();
-                write_stream_data(&mut in_file, &mut out_file, threads);
+                let encoding_strategy = match encoding_options {
+                    Some(EncodingOptions::Single) | None => EncodingStrategy::Single,
+                    Some(EncodingOptions::KMeans {
+                        iterations,
+                        num_tables,
+                    }) => EncodingStrategy::BlockWise {
+                        num_iterations: iterations,
+                        num_clusters: num_tables,
+                    },
+                };
+                encode_stream(&mut in_file, &mut out_file, threads, encoding_strategy);
             }
         }
     }

@@ -1,6 +1,22 @@
 use std::io::Write;
 
-use crate::{bitwise::{bitreader::BitReader, bitwriter::{Bit, convert_to_number}}, lib::block::{bwt::bwt_inverse::inverse_bwt, code_table::ReadDelta, crc32::crc32, huffman::{CodeTable, HuffmanSymbol, reader::ReadSymbols}, mtf::inverse_mtf, rle::inverse_rle, selectors::ReadUnary, symbol_map::GetSymbolTable, zle::{ZleSymbol, decode_zle}}};
+use crate::{
+    lib::bitwise::{bitreader::BitReader, bitwriter::convert_to_number},
+    lib::{
+        bitwise::Bit,
+        block::{
+            bwt::bwt_inverse::inverse_bwt,
+            code_table::ReadDelta,
+            crc32::crc32,
+            huffman::{reader::ReadSymbols, CodeTable, HuffmanSymbol},
+            mtf::inverse_mtf,
+            rle::inverse_rle,
+            selectors::ReadUnary,
+            symbol_map::GetSymbolTable,
+            zle::{decode_zle, ZleSymbol},
+        },
+    },
+};
 
 pub fn decode_block(mut reader: impl BitReader, mut writer: impl Write) -> Result<(), ()> {
     let crc = convert_to_number(&reader.read_bits(32).unwrap())
@@ -12,6 +28,10 @@ pub fn decode_block(mut reader: impl BitReader, mut writer: impl Write) -> Resul
     let num_trees = convert_to_number(&reader.read_bits(3).unwrap());
     let num_selectors = convert_to_number(&reader.read_bits(15).unwrap());
     let selectors = reader.read_unary(num_selectors).unwrap();
+    let selectors = inverse_mtf(
+        &selectors,
+        &(0u8..num_trees as u8).into_iter().collect::<Vec<_>>(),
+    );
     let mut trees = vec![];
     for _ in 0..num_trees {
         trees.push(reader.read_delta(symbols.len() + 2).unwrap());

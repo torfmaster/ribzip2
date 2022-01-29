@@ -1,5 +1,7 @@
 use std::cmp::Ordering;
 
+use super::symbol_statistics::{ReportedSymbols, SymbolReporter};
+
 #[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub(crate) enum ZleSymbol {
     RunA,
@@ -72,11 +74,8 @@ fn encode_zero_amount(number_of_zeros: usize) -> Vec<ZleSymbol> {
 
 pub(crate) fn zle_transform(
     input: Vec<u8>,
-    alphabet_size: usize,
-) -> (Vec<ZleSymbol>, PropabilityMap) {
-    // nicht verwendete Symbole müssen korrekt reportet werden
-    let mut propability_map = PropabilityMap::create(alphabet_size);
-
+    mut symbol_reporter: impl SymbolReporter,
+) -> (Vec<ZleSymbol>, ReportedSymbols) {
     let mut zle_result = Vec::<ZleSymbol>::new();
     let mut zero_count = 0;
     for i in input {
@@ -87,23 +86,26 @@ pub(crate) fn zle_transform(
                 let zle_encoded = encode_zero_amount(zero_count);
                 zle_result.extend(zle_encoded.clone());
                 for x in zle_encoded.iter() {
-                    propability_map.report_symbol(x);
+                    symbol_reporter.report_symbol(x);
                 }
             }
             zero_count = 0;
             zle_result.push(ZleSymbol::Number(i));
-            propability_map.report_symbol(&ZleSymbol::Number(i));
+            symbol_reporter.report_symbol(&ZleSymbol::Number(i));
         }
     }
     if zero_count > 0 {
         let zle_encoded = encode_zero_amount(zero_count);
         zle_result.extend(zle_encoded.clone());
         for x in zle_encoded.iter() {
-            propability_map.report_symbol(x);
+            symbol_reporter.report_symbol(x);
         }
     }
 
-    (zle_result, propability_map)
+    // FIXME: report eob
+    symbol_reporter.report_symbol(&ZleSymbol::RunA);
+
+    (zle_result, symbol_reporter.finalize())
 }
 
 pub(crate) fn decode_zle(input: &[ZleSymbol]) -> Vec<u8> {
@@ -145,44 +147,11 @@ fn decode_zero_amount(input: &[ZleSymbol]) -> usize {
     number - 1
 }
 
-pub (crate) struct PropabilityMap {
-    frequencies: Vec<usize>
-}
-
-impl PropabilityMap {
-    pub fn iterator(self) -> impl Iterator<Item = (ZleSymbol, usize)> {
-        self.frequencies.into_iter().enumerate().map(|(symbol, frequency)| match symbol {
-            0 => (ZleSymbol::RunA, frequency),
-            1 => (ZleSymbol::RunB, frequency),
-            x => (ZleSymbol::Number((x-1) as u8), frequency),
-        })
-    }
-
-    fn create(size: usize) -> Self {
-        PropabilityMap {
-            frequencies: vec![0;size+1]
-        }
-    }
-
-    fn report_symbol(&mut self, symbol: &ZleSymbol) {
-        match symbol {
-            ZleSymbol::RunA => {
-                self.frequencies[0]+=1;
-            },
-            ZleSymbol::RunB => {
-                self.frequencies[1]+=1;
-
-            },
-            ZleSymbol::Number(i) => {
-                self.frequencies[*i as usize+1]+=1;
-            },
-        }
-    }
-}
-
 #[cfg(test)]
 
 mod test {
+
+    use crate::lib::block::symbol_statistics::SinglePropabilityMap;
 
     use super::*;
 
@@ -258,13 +227,13 @@ mod test {
 
     #[test]
     fn encodes_zeros() {
-        let encoded = zle_transform(vec![0, 0, 0],1);
+        let encoded = zle_transform(vec![0, 0, 0], SinglePropabilityMap::create(1));
         assert_eq!(encoded.0, vec![ZleSymbol::RunA, ZleSymbol::RunA]);
     }
 
     #[test]
     fn encodes_zeros_and_numbers() {
-        let encoded = zle_transform(vec![1, 0, 0, 0],2);
+        let encoded = zle_transform(vec![1, 0, 0, 0], SinglePropabilityMap::create(2));
         assert_eq!(
             encoded.0,
             vec![ZleSymbol::Number(1), ZleSymbol::RunA, ZleSymbol::RunA]
@@ -279,7 +248,7 @@ mod test {
 
     #[test]
     fn encodes_zeros_and_trailing_numbers() {
-        let encoded = zle_transform(vec![1, 0, 0, 0, 2],3).0;
+        let encoded = zle_transform(vec![1, 0, 0, 0, 2], SinglePropabilityMap::create(3)).0;
         assert_eq!(
             encoded,
             vec![
@@ -304,7 +273,7 @@ mod test {
 
     #[test]
     fn encodes_numbers_and_trailing_zeroes() {
-        let encoded = zle_transform(vec![1, 0, 0, 0, 2, 0, 0],3);
+        let encoded = zle_transform(vec![1, 0, 0, 0, 2, 0, 0], SinglePropabilityMap::create(3));
         assert_eq!(
             encoded.0,
             vec![

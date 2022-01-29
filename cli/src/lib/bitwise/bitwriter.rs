@@ -1,10 +1,6 @@
 use std::{io::Write, iter::repeat};
 
-#[derive(Clone, PartialEq, Eq, Debug, PartialOrd, Copy)]
-pub enum Bit {
-    Zero,
-    One,
-}
+use super::Bit;
 
 pub struct BitWriterImpl<'a, T>
 where
