@@ -4,7 +4,7 @@ version = "0.3.0"
 edition = "2021"
 license = "MIT"
 authors = ["Philipp Vollmer"]
-description = "a bzip2 cli written in pure rust"
+description = "a bzip2 library written in pure rust"
 repository = "https://github.com/torfmaster/ribzip2"
 
 [dependencies]
