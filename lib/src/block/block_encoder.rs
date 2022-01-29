@@ -1,9 +1,9 @@
 use crate::{
-    lib::bitwise::bitwriter::{
+    bitwise::bitwriter::{
         convert_to_code_pad_to_15_bits, convert_to_code_pad_to_byte, convert_to_code_pad_to_bytes,
         convert_to_code_pad_to_n_bits,
     },
-    lib::{
+    {
         bitwise::Bit,
         block::{
             bwt::bwt,

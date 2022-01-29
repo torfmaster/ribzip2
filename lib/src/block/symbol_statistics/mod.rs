@@ -4,6 +4,11 @@ use super::zle::ZleSymbol;
 mod kmeansclustering;
 
 #[derive(Clone, Copy)]
+#[non_exhaustive]
+/// Strategy for using Huffman Tables
+///
+/// * [EncodingStrategy::Single] - every block of 900k uses a single huffman code table
+/// * [EncodingStrategy::BlockWise] - usage of code tables in 50 byte chunks is optimized using Lloyd's algorithm with given parameters
 pub enum EncodingStrategy {
     BlockWise {
         num_clusters: usize,

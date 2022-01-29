@@ -1,12 +1,9 @@
-use lib::bitwise::bitreader::BitReaderImpl;
-use lib::block::symbol_statistics::EncodingStrategy;
-use lib::stream::{decode_stream, encode_stream};
+use libribzip2::stream::{decode_stream, encode_stream};
+use libribzip2::EncodingStrategy;
 use std::fs::File;
 use std::path::PathBuf;
 use std::{ffi::OsString, io::BufWriter};
 use structopt::StructOpt;
-
-mod lib;
 
 #[derive(StructOpt)]
 enum Opt {
@@ -44,8 +41,7 @@ fn main() {
                 out_file_name.set_extension(OsString::from("out"));
                 let out_file = File::create(out_file_name).expect("Could not create file.");
                 let mut in_file = File::open(file_name).unwrap();
-                let mut in_file_bit_reader = BitReaderImpl::from_reader(&mut in_file);
-                decode_stream(&mut in_file_bit_reader, out_file).unwrap();
+                decode_stream(&mut in_file, out_file).unwrap();
             }
         }
         Opt::Compress {

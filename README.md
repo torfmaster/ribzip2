@@ -6,6 +6,13 @@ considered work-in-progress and lacks many features of the original implementati
  * it has worse compression rate
  * it is slower (at least factor 2)
 
+# Usage
+
+Beware that `ribzip2` is WIP. If you absolutely want to, install `ribzip2` using `cargo install ribzip2`.
+You can use `ribzip2 compress <FILENAME>` to compress a file and `ribzip2 decompress <FILENAME>`.
+The latter will output from `file.bz2` to `file.out`. For further information use the help subcommand
+and the respective help options of `compress` and `decompress`, e.g. `ribzip2 compress --help`.
+
 # Design Goals
 
 ## Goals

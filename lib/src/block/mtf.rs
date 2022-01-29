@@ -76,7 +76,7 @@ pub(crate) fn inverse_mtf(input: &[u8], dictionary: &[u8]) -> Vec<u8> {
 mod test {
     use std::collections::VecDeque;
 
-    use crate::lib::block::mtf::{bring_to_front_of_dict, inverse_mtf, mtf};
+    use crate::block::mtf::{bring_to_front_of_dict, inverse_mtf, mtf};
 
     #[test]
     pub fn brings_to_front_of_dictionary() {

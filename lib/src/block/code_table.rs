@@ -1,9 +1,9 @@
 use crate::{
-    lib::bitwise::{
+    bitwise::{
         bitreader::BitReader,
         bitwriter::{convert_to_code_pad_to_n_bits, convert_to_number},
     },
-    lib::{bitwise::Bit, block::delta::DeltaSymbol},
+    {bitwise::Bit, block::delta::DeltaSymbol},
 };
 
 use super::{
@@ -87,7 +87,7 @@ where
 mod test {
     use std::io::Cursor;
 
-    use crate::lib::bitwise::{
+    use crate::bitwise::{
         bitreader::BitReaderImpl,
         bitwriter::{BitWriter, BitWriterImpl},
     };

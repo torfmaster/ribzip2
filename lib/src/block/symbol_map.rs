@@ -1,4 +1,4 @@
-use crate::lib::bitwise::{bitreader::BitReader, Bit};
+use crate::bitwise::{bitreader::BitReader, Bit};
 
 pub(crate) fn get_symbol_table(table: Vec<u8>) -> Vec<Bit> {
     let mut table2 = table.clone();
