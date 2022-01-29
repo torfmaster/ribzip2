@@ -151,7 +151,7 @@ fn decode_zero_amount(input: &[ZleSymbol]) -> usize {
 
 mod test {
 
-    use crate::lib::block::symbol_statistics::SinglePropabilityMap;
+    use crate::block::symbol_statistics::SinglePropabilityMap;
 
     use super::*;
 

@@ -1,4 +1,4 @@
-use crate::lib::bitwise::{bitreader::BitReader, Bit};
+use crate::bitwise::{bitreader::BitReader, Bit};
 
 use super::mtf::mtf;
 
@@ -49,7 +49,7 @@ where
 #[cfg(test)]
 mod test {
 
-    use crate::lib::bitwise::bitreader::InMemoryBitReader;
+    use crate::bitwise::bitreader::InMemoryBitReader;
 
     use super::*;
 

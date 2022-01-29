@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use crate::lib::bitwise::bitwriter::convert_to_number;
+use crate::bitwise::bitwriter::convert_to_number;
 
 use super::Bit;
 

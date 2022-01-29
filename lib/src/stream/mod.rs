@@ -1,6 +1,7 @@
-use crate::lib::bitwise::bitwriter::convert_to_code_pad_to_byte;
+use crate::bitwise::bitreader::BitReaderImpl;
+use crate::bitwise::bitwriter::convert_to_code_pad_to_byte;
 
-use crate::lib::block::block_encoder::crc_as_bytes;
+use crate::block::block_encoder::crc_as_bytes;
 
 use std::io::Read;
 use std::io::Write;
@@ -9,17 +10,17 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::thread;
 
-use crate::lib::bitwise::bitreader::BitReader;
-use crate::lib::bitwise::bitwriter::BitWriter;
-use crate::lib::bitwise::bitwriter::BitWriterImpl;
-use crate::lib::block::block_decoder::decode_block;
-use crate::lib::block::block_encoder::generate_block_data;
+use crate::bitwise::bitreader::BitReader;
+use crate::bitwise::bitwriter::BitWriter;
+use crate::bitwise::bitwriter::BitWriterImpl;
+use crate::block::block_decoder::decode_block;
+use crate::block::block_encoder::generate_block_data;
 
-use crate::lib::bitwise::Bit;
+use crate::bitwise::Bit;
 
 use super::block::symbol_statistics::EncodingStrategy;
 
-pub fn stream_footer(crc: u32) -> Vec<Bit> {
+fn stream_footer(crc: u32) -> Vec<Bit> {
     let mut out = vec![];
 
     out.append(
@@ -36,7 +37,7 @@ pub fn stream_footer(crc: u32) -> Vec<Bit> {
     out
 }
 
-pub fn file_header() -> Vec<Bit> {
+fn file_header() -> Vec<Bit> {
     let mut out = vec![];
     out.append(&mut convert_to_code_pad_to_byte(b'B'));
     out.append(&mut convert_to_code_pad_to_byte(b'Z'));
@@ -90,6 +91,8 @@ impl WorkerThread {
     }
 }
 
+/// Encode a stream into a writer. Takes a reader and a writer (i.e. two instances of [std::fs::File]).
+/// The number of threads and the encoding strategy can be specified.
 pub fn encode_stream(
     mut read: impl Read,
     mut writer: impl Write,
@@ -166,7 +169,9 @@ fn what_next(mut bit_reader: impl BitReader) -> Result<BlockType, ()> {
     }
 }
 
-pub fn decode_stream(mut bit_reader: impl BitReader, mut writer: impl Write) -> Result<(), ()> {
+/// Decode a stream into a writer. Takes a reader and a writer (i.e. two instances of [std::fs::File])
+pub fn decode_stream(mut reader: impl Read, mut writer: impl Write) -> Result<(), ()> {
+    let mut bit_reader = BitReaderImpl::from_reader(&mut reader);
     read_file_header(&mut bit_reader)?;
     loop {
         match what_next(&mut bit_reader)? {
@@ -182,7 +187,7 @@ pub fn decode_stream(mut bit_reader: impl BitReader, mut writer: impl Write) -> 
 #[cfg(test)]
 mod test {
 
-    use crate::lib::bitwise::bitreader::BitReaderImpl;
+    use crate::bitwise::bitreader::BitReaderImpl;
 
     use super::*;
     use std::io::Cursor;

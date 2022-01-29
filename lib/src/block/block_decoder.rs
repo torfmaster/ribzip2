@@ -1,8 +1,8 @@
 use std::io::Write;
 
 use crate::{
-    lib::bitwise::{bitreader::BitReader, bitwriter::convert_to_number},
-    lib::{
+    bitwise::{bitreader::BitReader, bitwriter::convert_to_number},
+    {
         bitwise::Bit,
         block::{
             bwt::bwt_inverse::inverse_bwt,

@@ -1,8 +1,8 @@
-use crate::lib::bitwise::bitwriter::increment_symbol;
-use crate::lib::bitwise::Bit;
+use crate::bitwise::bitwriter::increment_symbol;
+use crate::bitwise::Bit;
 
-use crate::lib::block::symbol_statistics::IntoFrequencyTable;
-use crate::lib::block::zle::ZleSymbol;
+use crate::block::symbol_statistics::IntoFrequencyTable;
+use crate::block::zle::ZleSymbol;
 use std::{fmt::Debug, iter::repeat};
 
 use super::package_merge::compute_lis;
