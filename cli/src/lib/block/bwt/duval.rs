@@ -1,5 +1,5 @@
 fn duval(input: &[u8]) -> usize {
-    let mut final_start=0;
+    let mut final_start = 0;
     let n = input.len();
     let mut i = 0;
 
@@ -9,14 +9,13 @@ fn duval(input: &[u8]) -> usize {
         while j < n && input[k] <= input[j] {
             if input[k] < input[j] {
                 k = i;
+            } else {
+                k += 1;
             }
-            else {
-                k+=1;
-            }
-            j+=1;
+            j += 1;
         }
         while i <= k {
-            final_start= i;
+            final_start = i;
 
             i += j - k;
         }
@@ -26,7 +25,7 @@ fn duval(input: &[u8]) -> usize {
 
 /// Compute lexicographically minimal rotation using the duval algorithm.
 /// Returns the rotation and the offset.
-pub fn rotate_duval(input: & [u8]) -> (Vec<u8>, usize) {
+pub fn rotate_duval(input: &[u8]) -> (Vec<u8>, usize) {
     let offset = duval(input);
     let mut buf = vec![];
     let (head, tail) = input.split_at(offset);
@@ -48,6 +47,6 @@ mod test {
     #[test]
     pub fn finds_final_lyndon_word() {
         let rotated = rotate_duval(b"bananaa");
-        assert_eq!(rotated.1,6)
+        assert_eq!(rotated.1, 6)
     }
 }

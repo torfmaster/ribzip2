@@ -1,5 +1,5 @@
-pub mod block_data;
 pub mod block_decoder;
+pub mod block_encoder;
 mod bwt;
 mod code_table;
 mod crc32;
@@ -9,4 +9,5 @@ mod mtf;
 mod rle;
 mod selectors;
 mod symbol_map;
+pub mod symbol_statistics;
 mod zle;

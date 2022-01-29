@@ -1,6 +1,8 @@
-use crate::bitwise::bitwriter::{increment_symbol, Bit};
+use crate::lib::bitwise::bitwriter::increment_symbol;
+use crate::lib::bitwise::Bit;
 
-use crate::lib::block::zle::{ZleSymbol, PropabilityMap};
+use crate::lib::block::symbol_statistics::IntoFrequencyTable;
+use crate::lib::block::zle::ZleSymbol;
 use std::{fmt::Debug, iter::repeat};
 
 use super::package_merge::compute_lis;
@@ -53,16 +55,21 @@ pub(crate) struct CanonicalCodeTable<T>(pub(crate) Vec<CanonicalCodeTableEntry<T
 /// The code tables are then limited to 20 bit length using the package merge algorithm.
 /// This restriction is due to the original implementation of bzip2 and hence cannot be dropped.
 pub(crate) fn compute_huffman(
-    frequency_table: PropabilityMap,
+    frequency_table: IntoFrequencyTable,
 ) -> CodeTable<HuffmanSymbol<ZleSymbol>> {
-    let mut frequency_table = frequency_table.iterator()
-        .map(|(symbol, frequency)| FrequencyTableEntry {  frequency, symbol: HuffmanSymbol::NormalSymbol(symbol), } )
+    let mut frequency_table = frequency_table
+        .iterate()
+        .map(|(symbol, frequency)| FrequencyTableEntry {
+            frequency,
+            symbol: HuffmanSymbol::NormalSymbol(symbol),
+        })
         .collect::<Vec<_>>();
 
     frequency_table.push(FrequencyTableEntry {
         frequency: 0,
         symbol: HuffmanSymbol::EoB,
     });
+
     frequency_table.sort_by(|x, y| x.frequency.cmp(&y.frequency));
 
     // Step 1 break ties between frequencies of symbols

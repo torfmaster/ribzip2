@@ -1,4 +1,4 @@
-use std::collections::{VecDeque};
+use std::collections::VecDeque;
 
 pub struct MtfData {
     pub encoded: Vec<u8>,
@@ -22,14 +22,16 @@ pub fn mtf(mtf_input: &[u8]) -> MtfData {
 }
 
 fn create_dict(input: &[u8]) -> (VecDeque<u8>, Vec<u8>) {
-    let mut dict = vec![false;256];
+    let mut dict = vec![false; 256];
     for i in input {
-        dict[*i as usize]=true;
+        dict[*i as usize] = true;
     }
     let used_symbols = dict
         .iter()
         .enumerate()
-        .filter( |x| *x.1 ).map(|x| x.0 as u8).collect::<Vec<_>>();
+        .filter(|x| *x.1)
+        .map(|x| x.0 as u8)
+        .collect::<Vec<_>>();
     let mut dict_vec = used_symbols.clone();
 
     dict_vec.sort_unstable();
@@ -42,12 +44,12 @@ fn bring_to_front_of_dict(position: u8, dict: &mut VecDeque<u8>) {
 }
 
 fn find_pos(i: u8, dict: &VecDeque<u8>) -> u8 {
-    let mut position =0;
+    let mut position = 0;
     for dict_element in dict.iter() {
         if *dict_element == i {
             return position;
         }
-        position+=1;
+        position += 1;
     }
     unreachable!()
 }
@@ -75,7 +77,6 @@ mod test {
     use std::collections::VecDeque;
 
     use crate::lib::block::mtf::{bring_to_front_of_dict, inverse_mtf, mtf};
-
 
     #[test]
     pub fn brings_to_front_of_dictionary() {

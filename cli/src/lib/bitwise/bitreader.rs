@@ -1,6 +1,8 @@
 use std::io::Read;
 
-use crate::bitwise::bitwriter::{convert_to_number, Bit};
+use crate::lib::bitwise::bitwriter::convert_to_number;
+
+use super::Bit;
 
 pub struct BitReaderImpl<'a, T: Read> {
     byte_reader: &'a mut T,

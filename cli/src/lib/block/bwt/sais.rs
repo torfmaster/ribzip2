@@ -1,4 +1,3 @@
-
 #[derive(PartialEq, Eq, Clone)]
 enum SuffixType {
     L,
@@ -13,7 +12,7 @@ pub(crate) struct SuffixTableEntry {
 /// Build suffix array using the SAIS algorithm
 pub(crate) fn build_suffix_array(bytes: &[u8]) -> Vec<SuffixTableEntry> {
     let data = bytes.iter().map(|x| *x as usize).collect::<Vec<usize>>();
-    return orchestrate_build_suffix_array(&data, u8::MAX as usize+1)
+    return orchestrate_build_suffix_array(&data, u8::MAX as usize + 1)
         .iter()
         .map(|x| SuffixTableEntry { index: x.unwrap() })
         .collect::<Vec<_>>();
@@ -99,10 +98,7 @@ fn reduce_problem(
         j += 1;
     }
     ReducedProblem {
-        reduced_text: reduced_text
-            .into_iter()
-            .map(|x| x)
-            .collect::<Vec<_>>(),
+        reduced_text: reduced_text.into_iter().map(|x| x).collect::<Vec<_>>(),
         offsets,
         alphabet_size: current_name + 1,
     }
@@ -146,21 +142,22 @@ fn induction_sort_s(
 ) {
     let mut bucket_tails = get_bucket_tails(bucket_sizes);
     for i in (0..suffix_array.len()).rev() {
-        let j = suffix_array[i].map(|number| number.checked_sub(1)).unwrap_or(None);
+        let j = suffix_array[i]
+            .map(|number| number.checked_sub(1))
+            .unwrap_or(None);
 
         match j {
             Some(j) => {
                 if suffix_types.get(j).unwrap() != &SuffixType::S {
-                    continue; 
+                    continue;
                 }
 
                 suffix_array[bucket_tails[text[j]]] = Some(j);
                 bucket_tails[text[j]] -= 1;
-
-            },
+            }
             None => {
                 continue;
-            },
+            }
         }
     }
 }
@@ -173,21 +170,21 @@ fn induction_sort_l(
 ) {
     let mut bucket_heads = get_bucket_heads(bucket_sizes);
     for i in 0..suffix_array.len() {
-        let j = suffix_array[i].map(|number| number.checked_sub(1)).unwrap_or(None);
+        let j = suffix_array[i]
+            .map(|number| number.checked_sub(1))
+            .unwrap_or(None);
         match j {
             Some(j) => {
                 if suffix_types.get(j).unwrap() != &SuffixType::L {
                     continue;
-                }  
+                }
                 suffix_array[bucket_heads[text[j]]] = Some(j);
                 bucket_heads[text[j]] += 1;
-
-            },
+            }
             None => {
                 continue;
             }
         }
-
     }
 }
 
@@ -231,10 +228,7 @@ fn is_lms_character(index: usize, suffix_types: &[SuffixType]) -> bool {
         return false;
     };
     return suffix_types.get(index).unwrap() == &SuffixType::S
-        && suffix_types
-            .get(index.checked_sub(1).unwrap())
-            .unwrap()
-            == &SuffixType::L;
+        && suffix_types.get(index.checked_sub(1).unwrap()).unwrap() == &SuffixType::L;
 }
 
 fn get_bucket_heads(bucket_sizes: &[usize]) -> Vec<usize> {
@@ -249,7 +243,7 @@ fn get_bucket_heads(bucket_sizes: &[usize]) -> Vec<usize> {
 }
 
 fn get_bucket_tails(bucket_sizes: &[usize]) -> Vec<usize> {
-    let mut tails = vec![0;bucket_sizes.len()];
+    let mut tails = vec![0; bucket_sizes.len()];
     let mut offset = 1;
     for i in 0..bucket_sizes.len() {
         offset += bucket_sizes[i];
@@ -268,7 +262,7 @@ fn get_bucket_sizes(text: &[usize], alphabet_size: usize) -> Vec<usize> {
 
 fn get_suffix_types(text: &[usize]) -> Vec<SuffixType> {
     let n = text.len();
-    let mut types = vec![SuffixType::L;n + 1];
+    let mut types = vec![SuffixType::L; n + 1];
     types.push(SuffixType::S);
 
     if n == 0 {
@@ -293,4 +287,3 @@ struct ReducedProblem {
     offsets: Vec<usize>,
     alphabet_size: usize,
 }
-

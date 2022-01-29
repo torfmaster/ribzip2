@@ -10,3 +10,4 @@ repository = "https://github.com/torfmaster/ribzip2"
 
 [dependencies]
 structopt = "0.3.25"
+

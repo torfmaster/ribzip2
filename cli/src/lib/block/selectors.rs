@@ -1,19 +1,19 @@
-use std::iter::repeat;
+use crate::lib::bitwise::{bitreader::BitReader, Bit};
 
-use crate::bitwise::{bitreader::BitReader, bitwriter::Bit};
+use super::mtf::mtf;
 
+pub(crate) fn create_selectors(selectors: &[u8]) -> (Vec<Bit>, usize) {
+    let mut out = vec![];
+    let selectors_mtf = mtf(&selectors);
 
-// FIXME: only supports one (duplicated huffman table)
-pub(crate) fn create_selectors(len: usize) -> (Vec<Bit>, usize) {
-    let num_selectors = len / 50;
-    let remainder = len % 50;
-
-    let num_selectors = num_selectors + if remainder > 0 { 1 } else { 0 };
-
-    (
-        repeat(Bit::Zero).take(num_selectors).collect::<Vec<_>>(),
-        num_selectors,
-    )
+    for selector in selectors_mtf.encoded {
+        for _ in 0..selector as usize {
+            out.push(Bit::One);
+        }
+        out.push(Bit::Zero);
+    }
+    let l = selectors.len();
+    (out, l)
 }
 
 pub(crate) trait ReadUnary {
@@ -49,8 +49,7 @@ where
 #[cfg(test)]
 mod test {
 
-
-    use crate::bitwise::bitreader::InMemoryBitReader;
+    use crate::lib::bitwise::bitreader::InMemoryBitReader;
 
     use super::*;
 

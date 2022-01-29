@@ -1,4 +1,4 @@
-use super::{sais::{build_suffix_array}, duval::rotate_duval};
+use super::{duval::rotate_duval, sais::build_suffix_array};
 
 fn bwt_private(string: &[u8]) -> (Vec<u8>, usize) {
     let (rotated, shift) = rotate_duval(&string);
@@ -17,7 +17,7 @@ fn bwt_private(string: &[u8]) -> (Vec<u8>, usize) {
         .iter()
         .filter(|x| x.index < len)
         .enumerate()
-        .find(|(_, x)| x.index == (len-shift)%len)
+        .find(|(_, x)| x.index == (len - shift) % len)
         .unwrap()
         .0;
     (bwt, orig_ptr)
