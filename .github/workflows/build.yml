@@ -65,6 +65,10 @@ jobs:
       run: |
         cd cli
         ./tests.sh
+    
+    - name: Check formatting
+      run: |
+           rustfmt --check
 
     - name: Print sccache stats
       run: sccache --show-stats
