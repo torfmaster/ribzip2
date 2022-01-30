@@ -68,7 +68,7 @@ jobs:
     
     - name: Check formatting
       run: |
-           rustfmt --check
+           cargo fmt --check --all
 
     - name: Print sccache stats
       run: sccache --show-stats
