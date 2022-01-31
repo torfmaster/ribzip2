@@ -68,7 +68,7 @@ jobs:
     
     - name: Check formatting
       run: |
-           cargo fmt --all
+           cargo fmt --all --check
 
     - name: Print sccache stats
       run: sccache --show-stats
