@@ -10,4 +10,5 @@ repository = "https://github.com/torfmaster/ribzip2"
 
 [dependencies]
 structopt = "0.3.25"
+num_cpus = "1.13.0"
 libribzip2 = { path="../lib", version="0.3.1" }
