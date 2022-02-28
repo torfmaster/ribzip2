@@ -80,10 +80,7 @@ fn main() {
                         num_clusters: num_tables,
                     },
                 };
-                let threads_val = match threads {
-                    None => num_cpus::get(),
-                    Some(val) => val,
-                };
+                let threads_val = threads.unwrap_or(num_cpus::get());
                 encode_stream(&mut in_file, &mut out_file, threads_val, encoding_strategy);
             }
         }
