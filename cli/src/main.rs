@@ -1,10 +1,10 @@
 use libribzip2::stream::{decode_stream, encode_stream};
 use libribzip2::EncodingStrategy;
+use num_cpus;
 use std::fs::File;
 use std::path::PathBuf;
 use std::{ffi::OsString, io::BufWriter};
 use structopt::StructOpt;
-use num_cpus;
 
 #[derive(StructOpt)]
 enum Opt {
