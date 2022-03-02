@@ -1,5 +1,6 @@
 use libribzip2::stream::{decode_stream, encode_stream};
 use libribzip2::EncodingStrategy;
+use num_cpus;
 use std::fs::File;
 use std::path::PathBuf;
 use std::{ffi::OsString, io::BufWriter};
@@ -14,8 +15,8 @@ enum Opt {
     Compress {
         #[structopt(parse(from_os_str), required = true)]
         input: Vec<PathBuf>,
-        #[structopt(default_value = "1", long)]
-        threads: usize,
+        #[structopt(long)]
+        threads: Option<usize>,
         #[structopt(subcommand)]
         encoding_options: Option<EncodingOptions>,
     },
@@ -79,7 +80,8 @@ fn main() {
                         num_clusters: num_tables,
                     },
                 };
-                encode_stream(&mut in_file, &mut out_file, threads, encoding_strategy);
+                let threads_val = threads.unwrap_or(num_cpus::get());
+                encode_stream(&mut in_file, &mut out_file, threads_val, encoding_strategy);
             }
         }
     }
