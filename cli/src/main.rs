@@ -38,10 +38,21 @@ fn main() {
     match opt {
         Opt::Decompress { input } => {
             for file_name in input {
+                let mut in_file = match File::open(&file_name) {
+                    Err(why) => panic!("Couldn't open {}: {}", file_name.display(), why),
+                    Ok(file) => file,
+                };
+
                 let mut out_file_name = file_name.clone();
-                out_file_name.set_extension(OsString::from("out"));
-                let out_file = File::create(out_file_name).expect("Could not create file.");
-                let mut in_file = File::open(file_name).unwrap();
+                out_file_name.set_extension(OsString::from(""));
+                if out_file_name.exists(){
+                    panic!("Output file {} already exists", out_file_name.display());
+                }
+                let out_file = match File::create(&out_file_name) {
+                    Err(why) => panic!("Couldn't create {}: {}", out_file_name.display(), why),
+                    Ok(file) => file,
+                };
+
                 decode_stream(&mut in_file, out_file).unwrap();
             }
         }
@@ -51,6 +62,11 @@ fn main() {
             encoding_options,
         } => {
             for file_name in input {
+                let mut in_file = match File::open(&file_name) {
+                    Err(why) => panic!("Couldn't open {}: {}", file_name.display(), why),
+                    Ok(file) => file,
+                };
+
                 let mut out_file_name = file_name.clone();
                 let extension = out_file_name.extension().map(|x| {
                     let mut y = x.to_os_string();
@@ -67,9 +83,17 @@ fn main() {
                     }
                 }
 
-                let out_file = File::create(out_file_name).expect("Could not create File.");
+                if out_file_name.exists(){
+                    panic!("Output file {} already exists", out_file_name.display());
+                }
+                
+                let out_file = match File::create(&out_file_name) {
+                    Err(why) => panic!("Couldn't create {}: {}", out_file_name.display(), why),
+                    Ok(file) => file,
+                };
+
                 let mut out_file = BufWriter::new(out_file);
-                let mut in_file = File::open(file_name).unwrap();
+
                 let encoding_strategy = match encoding_options {
                     Some(EncodingOptions::Single) | None => EncodingStrategy::Single,
                     Some(EncodingOptions::KMeans {
