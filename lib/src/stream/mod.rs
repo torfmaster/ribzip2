@@ -18,6 +18,7 @@ use crate::block::block_encoder::generate_block_data;
 
 use crate::bitwise::Bit;
 
+use super::block::rle::rle;
 use super::block::symbol_statistics::EncodingStrategy;
 
 fn stream_footer(crc: u32) -> Vec<Bit> {
@@ -46,7 +47,7 @@ fn file_header() -> Vec<Bit> {
     out
 }
 
-type Work = Vec<u8>;
+type Work = (Vec<u8>, Vec<u8>);
 type ComputationResult = (Vec<Bit>, u32);
 
 struct WorkerThread {
@@ -64,8 +65,9 @@ impl WorkerThread {
         builder
             .spawn(move || {
                 while let Ok(work) = receive_work.recv() {
+                    let (buffer, rle_data) = work;
                     send_result
-                        .send(generate_block_data(&work, encoding_strategy))
+                        .send(generate_block_data(&buffer, rle_data, encoding_strategy))
                         .unwrap();
                 }
             })
@@ -126,7 +128,8 @@ pub fn encode_stream(
             } else {
                 break;
             }
-            worker_thread.send_work(buf);
+            let rle_data = rle(&buf);
+            worker_thread.send_work((buf, rle_data));
         }
 
         for worker_thread in worker_threads.iter_mut() {
