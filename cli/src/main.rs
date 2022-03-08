@@ -1,11 +1,11 @@
 use libribzip2::stream::{decode_stream, encode_stream};
 use libribzip2::EncodingStrategy;
 use num_cpus;
+use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 use std::{ffi::OsString, io::BufWriter};
 use structopt::StructOpt;
-use std::fmt;
 
 #[derive(StructOpt)]
 enum Opt {
@@ -37,16 +37,16 @@ pub(crate) enum EncodingOptions {
 #[derive(Debug)]
 pub enum FileError {
     DuplicateError(PathBuf),
-    IoError(std::io::Error)
+    IoError(std::io::Error),
 }
 
 impl fmt::Display for FileError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FileError::DuplicateError(file_path) => 
-                write!(f, "Output file {} already exists", file_path.display()),
-            FileError::IoError(io_error) => 
-                write!(f, "{}", io_error),
+            FileError::DuplicateError(file_path) => {
+                write!(f, "Output file {} already exists", file_path.display())
+            }
+            FileError::IoError(io_error) => write!(f, "{}", io_error),
         }
     }
 }
@@ -59,15 +59,15 @@ impl From<std::io::Error> for FileError {
 
 impl std::error::Error for FileError {}
 
-fn create_file(file_path: &PathBuf) -> Result<File, FileError>{
-    if file_path.exists(){
+fn create_file(file_path: &PathBuf) -> Result<File, FileError> {
+    if file_path.exists() {
         return Err(FileError::DuplicateError(file_path.clone()));
     }
     let file = File::create(&file_path)?;
     Ok(file)
 }
 
-fn open_file(file_path: &PathBuf) -> Result<File, FileError>{
+fn open_file(file_path: &PathBuf) -> Result<File, FileError> {
     let file = File::open(&file_path)?;
     Ok(file)
 }
@@ -88,7 +88,7 @@ fn main() {
                 let out_file = create_file(&out_file_name).unwrap_or_else(|err| {
                     eprintln!("{}", err);
                     std::process::exit(1);
-                }); 
+                });
 
                 decode_stream(&mut in_file, out_file).unwrap();
             }
@@ -119,11 +119,11 @@ fn main() {
                         out_file_name.set_extension(OsString::from("bz2"));
                     }
                 }
-                
+
                 let out_file = create_file(&out_file_name).unwrap_or_else(|err| {
                     eprintln!("{}", err);
                     std::process::exit(1);
-                }); 
+                });
 
                 let mut out_file = BufWriter::new(out_file);
 
