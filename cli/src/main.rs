@@ -67,13 +67,18 @@ fn create_file(file_path: &PathBuf) -> Result<File, FileError>{
     Ok(file)
 }
 
+fn open_file(file_path: &PathBuf) -> Result<File, FileError>{
+    let file = File::open(&file_path)?;
+    Ok(file)
+}
+
 fn main() {
     let opt = Opt::from_args();
     match opt {
         Opt::Decompress { input } => {
             for file_name in input {
-                let mut in_file = File::open(&file_name).unwrap_or_else(|err| {
-                    eprintln!("{}", FileError::IoError(err));
+                let mut in_file = open_file(&file_name).unwrap_or_else(|err| {
+                    eprintln!("{}", err);
                     std::process::exit(1);
                 });
 
@@ -94,8 +99,8 @@ fn main() {
             encoding_options,
         } => {
             for file_name in input {
-                let mut in_file = File::open(&file_name).unwrap_or_else(|err| {
-                    eprintln!("{}", FileError::IoError(err));
+                let mut in_file = open_file(&file_name).unwrap_or_else(|err| {
+                    eprintln!("{}", err);
                     std::process::exit(1);
                 });
 
