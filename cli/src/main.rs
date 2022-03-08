@@ -5,6 +5,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::{ffi::OsString, io::BufWriter};
 use structopt::StructOpt;
+use std::fmt;
 
 #[derive(StructOpt)]
 enum Opt {
@@ -33,25 +34,56 @@ pub(crate) enum EncodingOptions {
     },
 }
 
+#[derive(Debug)]
+pub enum FileError {
+    DuplicateError(PathBuf),
+    IoError(std::io::Error)
+}
+
+impl fmt::Display for FileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FileError::DuplicateError(file_path) => 
+                write!(f, "Output file {} already exists", file_path.display()),
+            FileError::IoError(io_error) => 
+                write!(f, "{}", io_error),
+        }
+    }
+}
+
+impl From<std::io::Error> for FileError {
+    fn from(err: std::io::Error) -> Self {
+        FileError::IoError(err)
+    }
+}
+
+impl std::error::Error for FileError {}
+
+fn create_file(file_path: &PathBuf) -> Result<File, FileError>{
+    if file_path.exists(){
+        return Err(FileError::DuplicateError(file_path.clone()));
+    }
+    let file = File::create(&file_path)?;
+    Ok(file)
+}
+
 fn main() {
     let opt = Opt::from_args();
     match opt {
         Opt::Decompress { input } => {
             for file_name in input {
-                let mut in_file = match File::open(&file_name) {
-                    Err(why) => panic!("Couldn't open {}: {}", file_name.display(), why),
-                    Ok(file) => file,
-                };
+                let mut in_file = File::open(&file_name).unwrap_or_else(|err| {
+                    eprintln!("{}", FileError::IoError(err));
+                    std::process::exit(1);
+                });
 
                 let mut out_file_name = file_name.clone();
                 out_file_name.set_extension(OsString::from(""));
-                if out_file_name.exists(){
-                    panic!("Output file {} already exists", out_file_name.display());
-                }
-                let out_file = match File::create(&out_file_name) {
-                    Err(why) => panic!("Couldn't create {}: {}", out_file_name.display(), why),
-                    Ok(file) => file,
-                };
+
+                let out_file = create_file(&out_file_name).unwrap_or_else(|err| {
+                    eprintln!("{}", err);
+                    std::process::exit(1);
+                }); 
 
                 decode_stream(&mut in_file, out_file).unwrap();
             }
@@ -62,10 +94,10 @@ fn main() {
             encoding_options,
         } => {
             for file_name in input {
-                let mut in_file = match File::open(&file_name) {
-                    Err(why) => panic!("Couldn't open {}: {}", file_name.display(), why),
-                    Ok(file) => file,
-                };
+                let mut in_file = File::open(&file_name).unwrap_or_else(|err| {
+                    eprintln!("{}", FileError::IoError(err));
+                    std::process::exit(1);
+                });
 
                 let mut out_file_name = file_name.clone();
                 let extension = out_file_name.extension().map(|x| {
@@ -82,15 +114,11 @@ fn main() {
                         out_file_name.set_extension(OsString::from("bz2"));
                     }
                 }
-
-                if out_file_name.exists(){
-                    panic!("Output file {} already exists", out_file_name.display());
-                }
                 
-                let out_file = match File::create(&out_file_name) {
-                    Err(why) => panic!("Couldn't create {}: {}", out_file_name.display(), why),
-                    Ok(file) => file,
-                };
+                let out_file = create_file(&out_file_name).unwrap_or_else(|err| {
+                    eprintln!("{}", err);
+                    std::process::exit(1);
+                }); 
 
                 let mut out_file = BufWriter::new(out_file);
 
