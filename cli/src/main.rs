@@ -1,6 +1,7 @@
 use libribzip2::stream::{decode_stream, encode_stream};
 use libribzip2::EncodingStrategy;
 use num_cpus;
+use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 use std::{ffi::OsString, io::BufWriter};
@@ -33,15 +34,52 @@ pub(crate) enum EncodingOptions {
     },
 }
 
-fn main() {
-    let opt = Opt::from_args();
+#[derive(Debug)]
+pub enum FileError {
+    DuplicateError(PathBuf),
+    IoError(std::io::Error),
+}
+
+impl fmt::Display for FileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FileError::DuplicateError(file_path) => {
+                write!(f, "Output file {} already exists", file_path.display())
+            }
+            FileError::IoError(io_error) => write!(f, "{}", io_error),
+        }
+    }
+}
+
+impl From<std::io::Error> for FileError {
+    fn from(err: std::io::Error) -> Self {
+        FileError::IoError(err)
+    }
+}
+
+impl std::error::Error for FileError {}
+
+fn create_file(file_path: &PathBuf) -> Result<File, FileError> {
+    if file_path.exists() {
+        return Err(FileError::DuplicateError(file_path.clone()));
+    }
+    let file = File::create(&file_path)?;
+    Ok(file)
+}
+
+fn open_file(file_path: &PathBuf) -> Result<File, FileError> {
+    let file = File::open(&file_path)?;
+    Ok(file)
+}
+
+fn try_main(opt: Opt) -> Result<(), FileError> {
     match opt {
         Opt::Decompress { input } => {
             for file_name in input {
+                let mut in_file = open_file(&file_name)?;
                 let mut out_file_name = file_name.clone();
-                out_file_name.set_extension(OsString::from("out"));
-                let out_file = File::create(out_file_name).expect("Could not create file.");
-                let mut in_file = File::open(file_name).unwrap();
+                out_file_name.set_extension(OsString::from(""));
+                let out_file = create_file(&out_file_name)?;
                 decode_stream(&mut in_file, out_file).unwrap();
             }
         }
@@ -51,6 +89,7 @@ fn main() {
             encoding_options,
         } => {
             for file_name in input {
+                let mut in_file = open_file(&file_name)?;
                 let mut out_file_name = file_name.clone();
                 let extension = out_file_name.extension().map(|x| {
                     let mut y = x.to_os_string();
@@ -67,9 +106,8 @@ fn main() {
                     }
                 }
 
-                let out_file = File::create(out_file_name).expect("Could not create File.");
+                let out_file = create_file(&out_file_name)?;
                 let mut out_file = BufWriter::new(out_file);
-                let mut in_file = File::open(file_name).unwrap();
                 let encoding_strategy = match encoding_options {
                     Some(EncodingOptions::Single) | None => EncodingStrategy::Single,
                     Some(EncodingOptions::KMeans {
@@ -85,4 +123,14 @@ fn main() {
             }
         }
     }
+
+    Ok(())
+}
+
+fn main() {
+    let opt = Opt::from_args();
+    try_main(opt).unwrap_or_else(|err| {
+        eprintln!("{}", err);
+        std::process::exit(1);
+    });
 }

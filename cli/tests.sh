@@ -12,11 +12,13 @@ bunzip2 temp/idiot.txt.bz2
 rm temp/idiot.txt
 
 cargo run -- compress samples/pepper.txt
-cargo run -- decompress samples/pepper.txt.bz2
-rm samples/pepper.txt.bz2
-rm samples/pepper.txt.out
+mv samples/pepper.txt.bz2 temp/
+cargo run -- decompress temp/pepper.txt.bz2
+rm temp/pepper.txt.bz2
+rm temp/pepper.txt
 
 cargo run -- compress samples/idiot.txt
-cargo run -- decompress samples/idiot.txt.bz2
-rm samples/idiot.txt.bz2
-rm samples/idiot.txt.out
+mv samples/idiot.txt.bz2 temp/
+cargo run -- decompress temp/idiot.txt.bz2
+rm temp/idiot.txt.bz2
+rm temp/idiot.txt
