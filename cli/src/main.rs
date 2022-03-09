@@ -72,24 +72,14 @@ fn open_file(file_path: &PathBuf) -> Result<File, FileError> {
     Ok(file)
 }
 
-fn main() {
-    let opt = Opt::from_args();
+fn try_main(opt: Opt) -> Result<(), FileError> {
     match opt {
         Opt::Decompress { input } => {
             for file_name in input {
-                let mut in_file = open_file(&file_name).unwrap_or_else(|err| {
-                    eprintln!("{}", err);
-                    std::process::exit(1);
-                });
-
+                let mut in_file = open_file(&file_name)?;
                 let mut out_file_name = file_name.clone();
                 out_file_name.set_extension(OsString::from(""));
-
-                let out_file = create_file(&out_file_name).unwrap_or_else(|err| {
-                    eprintln!("{}", err);
-                    std::process::exit(1);
-                });
-
+                let out_file = create_file(&out_file_name)?;
                 decode_stream(&mut in_file, out_file).unwrap();
             }
         }
@@ -99,11 +89,7 @@ fn main() {
             encoding_options,
         } => {
             for file_name in input {
-                let mut in_file = open_file(&file_name).unwrap_or_else(|err| {
-                    eprintln!("{}", err);
-                    std::process::exit(1);
-                });
-
+                let mut in_file = open_file(&file_name)?;
                 let mut out_file_name = file_name.clone();
                 let extension = out_file_name.extension().map(|x| {
                     let mut y = x.to_os_string();
@@ -120,13 +106,8 @@ fn main() {
                     }
                 }
 
-                let out_file = create_file(&out_file_name).unwrap_or_else(|err| {
-                    eprintln!("{}", err);
-                    std::process::exit(1);
-                });
-
+                let out_file = create_file(&out_file_name)?;
                 let mut out_file = BufWriter::new(out_file);
-
                 let encoding_strategy = match encoding_options {
                     Some(EncodingOptions::Single) | None => EncodingStrategy::Single,
                     Some(EncodingOptions::KMeans {
@@ -142,4 +123,14 @@ fn main() {
             }
         }
     }
+
+    Ok(())
+}
+
+fn main() {
+    let opt = Opt::from_args();
+    try_main(opt).unwrap_or_else(|err| {
+        eprintln!("{}", err);
+        std::process::exit(1);
+    });
 }
