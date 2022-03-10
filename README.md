@@ -28,7 +28,7 @@ and the respective help options of `compress` and `decompress`, e.g. `ribzip2 co
 
  * ergonomic library crate
  * drop-in replacement for the bzip2 crate
- * drop-in replacement for C libzip2
+ * drop-in replacement for C libbzip2
  * drop-in replacement for the C bzip2/bunzip2 binary
 
 ## Publishing
