@@ -19,6 +19,8 @@ use crate::block::block_encoder::generate_block_data;
 use crate::bitwise::Bit;
 
 use super::block::rle::rle;
+use super::block::rle::rle_augment;
+use super::block::rle::rle_total_size;
 use super::block::symbol_statistics::EncodingStrategy;
 
 fn stream_footer(crc: u32) -> Vec<Bit> {
@@ -102,9 +104,7 @@ pub fn encode_stream(
     encoding_strategy: EncodingStrategy,
 ) {
     let mut bit_writer = BitWriterImpl::from_writer(&mut writer);
-    // 900_000 * 4 / 5 - RLE can blow up 4chars to 5, hence we keep
-    // a safety margin of 180,000
-    const BLOCK_SIZE: usize = 720_000;
+    const RLE_LIMIT: usize = 900_000;
     let mut total_crc: u32 = 0;
 
     let mut worker_threads = (0..num_threads)
@@ -120,16 +120,47 @@ pub fn encode_stream(
         }
         for worker_thread in worker_threads.iter_mut() {
             let mut buf = vec![];
-            if let Ok(size) = read.by_ref().take(BLOCK_SIZE as u64).read_to_end(&mut buf) {
-                if size == 0 {
-                    finalize = true;
+            let mut rle_data = vec![];
+            let mut rle_total_count = 0;
+            let mut rle_count = 0;
+            let mut rle_last_char = None;
+            while rle_total_count < RLE_LIMIT {
+                // RLE can blow up 4chars to 5, hence we keep a safety margin
+                let to_take = (RLE_LIMIT - rle_data.len()) * 4 / 5;
+                let mut buf_current = vec![];
+                if let Ok(size) = read
+                    .by_ref()
+                    .take(to_take as u64)
+                    .read_to_end(&mut buf_current)
+                {
+                    if size == 0 {
+                        finalize = true;
+                        break;
+                    }
+                } else {
                     break;
                 }
-            } else {
+                let rle_result = rle(&buf_current, rle_count, rle_last_char);
+                let (mut rle_next, rle_next_count, rle_next_char) = rle_result;
+
+                let next_data_len = rle_data.len() + rle_next.len();
+                rle_total_count = rle_total_size(next_data_len, rle_next_count, rle_next_char);
+
+                // Avoid exceeding the limit.
+                if rle_total_count <= RLE_LIMIT {
+                    rle_data.append(&mut rle_next);
+                    buf.append(&mut buf_current);
+                    rle_count = rle_next_count;
+                    rle_last_char = rle_next_char;
+                }
+            }
+
+            if buf.len() == 0 {
                 break;
             }
-            let rle_data = rle(&buf);
-            worker_thread.send_work((buf, rle_data));
+
+            let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+            worker_thread.send_work((buf, rle_total));
         }
 
         for worker_thread in worker_threads.iter_mut() {
