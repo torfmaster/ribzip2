@@ -27,7 +27,7 @@ fn bwt_private(string: &[u8]) -> (Vec<u8>, usize) {
 /// It uses the duval algorithm to provide a lexicographically minimal rotation of the input string
 /// and passes this to the SAIS algorithm. The rotation makes sure that the BWT is computed
 /// correctly because the rotation is lexicographically minimal.
-pub fn bwt(input: Vec<u8>) -> BwtData {
+pub fn bwt(input: &Vec<u8>) -> BwtData {
     let res = bwt_private(&input);
 
     BwtData {
@@ -48,33 +48,33 @@ mod test {
 
     #[test]
     pub fn banana() {
-        let bwt_result = bwt(b"banana".to_vec());
+        let bwt_result = bwt(&b"banana".to_vec());
         assert_eq!(bwt_result.data, b"nnbaaa".to_vec());
     }
 
     #[test]
     pub fn bananaa() {
-        let bwt_result = bwt(b"bananaa".to_vec());
+        let bwt_result = bwt(&b"bananaa".to_vec());
         assert_eq!(bwt_result.data, b"nanbaaa".to_vec());
     }
 
     #[test]
     pub fn banana2() {
-        let bwt_result = bwt(b"banana".to_vec());
+        let bwt_result = bwt(&b"banana".to_vec());
         assert_eq!(bwt_result.data, b"nnbaaa".to_vec());
         assert_eq!(bwt_result.end_of_string, 3);
     }
 
     #[test]
     pub fn longer_text() {
-        let bwt_result = bwt(b"If Peter Piper picked a peck of pickled peppers, where's the peck of pickled peppers Peter Piper picked?????".to_vec());
+        let bwt_result = bwt(&b"If Peter Piper picked a peck of pickled peppers, where's the peck of pickled peppers Peter Piper picked?????".to_vec());
         assert_eq!(24, bwt_result.end_of_string);
         assert_eq!(b"fsrrdkkeaddrrffs,esd?????     eeiiiieeeehrppkllkppttpphppPPIootwppppPPcccccckk      iipp    eeeeeeeeer'ree  ".to_vec(), bwt_result.data);
     }
 
     #[test]
     pub fn banana3() {
-        let bwt_result = bwt(b"bananaaar".to_vec());
+        let bwt_result = bwt(&b"bananaaar".to_vec());
         assert_eq!(bwt_result.data, b"nanbaraaa".to_vec());
         assert_eq!(bwt_result.end_of_string, 5);
     }

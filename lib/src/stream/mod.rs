@@ -69,7 +69,7 @@ impl WorkerThread {
                 while let Ok(work) = receive_work.recv() {
                     let (buffer, rle_data) = work;
                     send_result
-                        .send(generate_block_data(&buffer, rle_data, encoding_strategy))
+                        .send(generate_block_data(&buffer, &rle_data, encoding_strategy))
                         .unwrap();
                 }
             })
@@ -146,13 +146,10 @@ pub fn encode_stream(
                 let next_data_len = rle_data.len() + rle_next.len();
                 rle_total_count = rle_total_size(next_data_len, rle_next_count, rle_next_char);
 
-                // Avoid exceeding the limit.
-                if rle_total_count <= RLE_LIMIT {
-                    rle_data.append(&mut rle_next);
-                    buf.append(&mut buf_current);
-                    rle_count = rle_next_count;
-                    rle_last_char = rle_next_char;
-                }
+                rle_data.append(&mut rle_next);
+                buf.append(&mut buf_current);
+                rle_count = rle_next_count;
+                rle_last_char = rle_next_char;
             }
 
             if buf.len() == 0 {

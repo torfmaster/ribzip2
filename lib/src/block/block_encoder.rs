@@ -24,7 +24,7 @@ use super::symbol_statistics::{
 
 pub(crate) fn generate_block_data(
     input: &[u8],
-    rle_data: Vec<u8>,
+    rle_data: &Vec<u8>,
     encoding_strategy: EncodingStrategy,
 ) -> (Vec<Bit>, u32) {
     let mut output = Vec::<Bit>::new();
