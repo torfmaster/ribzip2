@@ -141,7 +141,9 @@ pub fn encode_stream(
                     break;
                 }
                 let rle_result = rle(&buf_current, rle_count, rle_last_char);
-                let (mut rle_next, rle_next_count, rle_next_char) = rle_result;
+                let mut rle_next = rle_result.data;
+                let rle_next_count = rle_result.counter;
+                let rle_next_char = rle_result.last_byte;
 
                 let next_data_len = rle_data.len() + rle_next.len();
                 rle_total_count = rle_total_size(next_data_len, rle_next_count, rle_next_char);
