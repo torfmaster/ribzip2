@@ -2,7 +2,7 @@ pub mod block_decoder;
 pub mod block_encoder;
 mod bwt;
 mod code_table;
-mod crc32;
+pub mod crc32;
 mod delta;
 mod huffman;
 mod mtf;

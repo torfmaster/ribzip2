@@ -15,6 +15,7 @@ use crate::bitwise::bitwriter::BitWriter;
 use crate::bitwise::bitwriter::BitWriterImpl;
 use crate::block::block_decoder::decode_block;
 use crate::block::block_encoder::generate_block_data;
+use crate::block::crc32::crc32;
 
 use crate::bitwise::Bit;
 
@@ -49,7 +50,7 @@ fn file_header() -> Vec<Bit> {
     out
 }
 
-type Work = (Vec<u8>, Vec<u8>);
+type Work = (u32, Vec<u8>);
 type ComputationResult = (Vec<Bit>, u32);
 
 struct WorkerThread {
@@ -67,9 +68,13 @@ impl WorkerThread {
         builder
             .spawn(move || {
                 while let Ok(work) = receive_work.recv() {
-                    let (buffer, rle_data) = work;
+                    let (computed_crc, rle_data) = work;
                     send_result
-                        .send(generate_block_data(&buffer, &rle_data, encoding_strategy))
+                        .send(generate_block_data(
+                            computed_crc,
+                            &rle_data,
+                            encoding_strategy,
+                        ))
                         .unwrap();
                 }
             })
@@ -159,7 +164,8 @@ pub fn encode_stream(
             }
 
             let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
-            worker_thread.send_work((buf, rle_total));
+            let computed_crc = crc32(&buf);
+            worker_thread.send_work((computed_crc, rle_total));
         }
 
         for worker_thread in worker_threads.iter_mut() {

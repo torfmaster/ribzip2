@@ -8,7 +8,6 @@ use crate::{
         block::{
             bwt::bwt,
             code_table::encode_code_table,
-            crc32::crc32,
             huffman::{compute_huffman, HuffmanSymbol},
             mtf::mtf,
             selectors::create_selectors,
@@ -23,12 +22,11 @@ use super::symbol_statistics::{
 };
 
 pub(crate) fn generate_block_data(
-    input: &[u8],
+    checksum: u32,
     rle_data: &Vec<u8>,
     encoding_strategy: EncodingStrategy,
 ) -> (Vec<Bit>, u32) {
     let mut output = Vec::<Bit>::new();
-    let checksum = crc32(input);
 
     let bwt_data = bwt(rle_data);
     let mtf_data = mtf(&bwt_data.data);
