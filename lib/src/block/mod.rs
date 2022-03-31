@@ -6,7 +6,7 @@ mod crc32;
 mod delta;
 mod huffman;
 mod mtf;
-mod rle;
+pub mod rle;
 mod selectors;
 mod symbol_map;
 pub mod symbol_statistics;

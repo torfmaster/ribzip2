@@ -1,7 +1,13 @@
-pub fn rle(input: &[u8]) -> Vec<u8> {
+pub struct RleResult {
+    pub data: Vec<u8>,
+    pub counter: usize,
+    pub last_byte: Option<u8>,
+}
+
+pub fn rle(input: &[u8], init_counter: usize, init_last: Option<u8>) -> RleResult {
     let mut output = Vec::<u8>::new();
-    let mut counter: usize = 0;
-    let mut last = None;
+    let mut counter: usize = init_counter;
+    let mut last = init_last;
     for current in input.iter() {
         counter += 1;
         if let Some(last_byte) = last {
@@ -22,6 +28,30 @@ pub fn rle(input: &[u8]) -> Vec<u8> {
 
         last = Some(*current);
     }
+
+    RleResult {
+        data: output,
+        counter,
+        last_byte: last,
+    }
+}
+
+pub fn rle_total_size(input_len: usize, counter: usize, last: Option<u8>) -> usize {
+    let mut output_size = input_len;
+
+    if let Some(_last_byte) = last {
+        if counter >= 4 {
+            output_size += 5;
+        } else {
+            output_size += counter;
+        }
+    }
+
+    output_size
+}
+
+pub fn rle_augment(input: &[u8], counter: usize, last: Option<u8>) -> Vec<u8> {
+    let mut output = Vec::<u8>::from(input);
 
     if let Some(last_byte) = last {
         if counter >= 4 {
@@ -68,71 +98,200 @@ mod test {
     use super::*;
     #[test]
     pub fn keeps_three_byte_sequences() {
-        assert_eq!(rle(&[1, 1, 1]), vec![1, 1, 1]);
+        let rle_result = rle(&[1, 1, 1], 0, None);
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![]);
+        assert_eq!(rle_count, 3);
+        assert_eq!(rle_last_char, Some(1));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 3);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![1, 1, 1]);
     }
 
     #[test]
     pub fn adds_overflow_to_sequence() {
-        assert_eq!(rle(&[1, 1, 1, 1]), vec![1, 1, 1, 1, 0]);
+        let rle_result = rle(&[1, 1, 1, 1], 0, None);
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![]);
+        assert_eq!(rle_count, 4);
+        assert_eq!(rle_last_char, Some(1));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 5);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![1, 1, 1, 1, 0]);
     }
 
     #[test]
     pub fn larger_numbers() {
-        assert_eq!(rle(&[1, 1, 1, 1, 1]), vec![1, 1, 1, 1, 1]);
+        let rle_result = rle(&[1, 1, 1, 1, 1], 0, None);
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![]);
+        assert_eq!(rle_count, 5);
+        assert_eq!(rle_last_char, Some(1));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 5);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![1, 1, 1, 1, 1]);
     }
 
     #[test]
     pub fn mixed_sequences() {
-        assert_eq!(rle(&[1, 1, 1, 1, 2, 2, 2]), vec![1, 1, 1, 1, 0, 2, 2, 2]);
+        let rle_result = rle(&[1, 1, 1, 1, 2, 2, 2], 0, None);
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![1, 1, 1, 1, 0]);
+        assert_eq!(rle_count, 3);
+        assert_eq!(rle_last_char, Some(2));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 8);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![1, 1, 1, 1, 0, 2, 2, 2]);
     }
 
     #[test]
     pub fn mixed_sequences_with_length() {
-        assert_eq!(
-            rle(&[1, 1, 1, 1, 1, 2, 2, 2, 2, 2]),
-            vec![1, 1, 1, 1, 1, 2, 2, 2, 2, 1]
-        );
+        let rle_result = rle(&[1, 1, 1, 1, 1, 2, 2, 2, 2, 2], 0, None);
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![1, 1, 1, 1, 1]);
+        assert_eq!(rle_count, 5);
+        assert_eq!(rle_last_char, Some(2));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 10);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![1, 1, 1, 1, 1, 2, 2, 2, 2, 1]);
     }
 
     #[test]
     pub fn mixed_sequences_with_and_without_length() {
-        assert_eq!(rle(&[1, 1, 1, 2, 2, 2, 2, 2]), vec![1, 1, 1, 2, 2, 2, 2, 1]);
+        let rle_result = rle(&[1, 1, 1, 2, 2, 2, 2, 2], 0, None);
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![1, 1, 1]);
+        assert_eq!(rle_count, 5);
+        assert_eq!(rle_last_char, Some(2));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 8);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![1, 1, 1, 2, 2, 2, 2, 1]);
     }
 
     #[test]
     pub fn mixed_sequences_with_and_without_length_2() {
-        assert_eq!(rle(&[1, 1, 1, 1, 2, 2, 2]), vec![1, 1, 1, 1, 0, 2, 2, 2]);
+        let rle_result = rle(&[1, 1, 1, 1, 2, 2, 2], 0, None);
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![1, 1, 1, 1, 0]);
+        assert_eq!(rle_count, 3);
+        assert_eq!(rle_last_char, Some(2));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 8);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![1, 1, 1, 1, 0, 2, 2, 2]);
     }
 
     #[test]
     pub fn even_longer_sequences() {
-        assert_eq!(
-            rle(&[1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3]),
-            vec![1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3]
-        );
+        let rle_result = rle(&[1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3], 0, None);
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![1, 1, 1, 1, 2, 2, 2, 2, 2, 2]);
+        assert_eq!(rle_count, 3);
+        assert_eq!(rle_last_char, Some(3));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 13);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3]);
     }
 
     #[test]
     pub fn max_block_length() {
-        assert_eq!(
-            rle(&std::iter::repeat(3).take(255).collect::<Vec<u8>>()),
-            vec![3, 3, 3, 3, 251]
+        let rle_result = rle(
+            &std::iter::repeat(3).take(255).collect::<Vec<u8>>(),
+            0,
+            None,
         );
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![]);
+        assert_eq!(rle_count, 255);
+        assert_eq!(rle_last_char, Some(3));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 5);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![3, 3, 3, 3, 251]);
     }
 
     #[test]
     pub fn more_than_max_block_length() {
-        assert_eq!(
-            rle(&std::iter::repeat(3).take(256).collect::<Vec<u8>>()),
-            vec![3, 3, 3, 3, 251, 3]
+        let rle_result = rle(
+            &std::iter::repeat(3).take(256).collect::<Vec<u8>>(),
+            0,
+            None,
         );
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![3, 3, 3, 3, 251]);
+        assert_eq!(rle_count, 1);
+        assert_eq!(rle_last_char, Some(3));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 6);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![3, 3, 3, 3, 251, 3]);
     }
     #[test]
     pub fn twice_max_block_length() {
-        assert_eq!(
-            rle(&std::iter::repeat(3).take(510).collect::<Vec<u8>>()),
-            vec![3, 3, 3, 3, 251, 3, 3, 3, 3, 251]
+        let rle_result = rle(
+            &std::iter::repeat(3).take(510).collect::<Vec<u8>>(),
+            0,
+            None,
         );
+
+        let rle_data = rle_result.data;
+        let rle_count = rle_result.counter;
+        let rle_last_char = rle_result.last_byte;
+        assert_eq!(rle_data, vec![3, 3, 3, 3, 251]);
+        assert_eq!(rle_count, 255);
+        assert_eq!(rle_last_char, Some(3));
+
+        assert_eq!(rle_total_size(rle_data.len(), rle_count, rle_last_char), 10);
+
+        let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+        assert_eq!(rle_total, vec![3, 3, 3, 3, 251, 3, 3, 3, 3, 251]);
     }
 
     #[test]

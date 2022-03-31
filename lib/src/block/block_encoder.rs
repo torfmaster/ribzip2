@@ -11,7 +11,6 @@ use crate::{
             crc32::crc32,
             huffman::{compute_huffman, HuffmanSymbol},
             mtf::mtf,
-            rle::rle,
             selectors::create_selectors,
             symbol_map::get_symbol_table,
             zle::zle_transform,
@@ -25,12 +24,12 @@ use super::symbol_statistics::{
 
 pub(crate) fn generate_block_data(
     input: &[u8],
+    rle_data: &Vec<u8>,
     encoding_strategy: EncodingStrategy,
 ) -> (Vec<Bit>, u32) {
     let mut output = Vec::<Bit>::new();
     let checksum = crc32(input);
 
-    let rle_data = rle(input);
     let bwt_data = bwt(rle_data);
     let mtf_data = mtf(&bwt_data.data);
     let (zle_data, frequencies) = match encoding_strategy {
