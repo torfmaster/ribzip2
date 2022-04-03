@@ -1,5 +1,6 @@
 use crate::bitwise::bitreader::BitReaderImpl;
 use crate::bitwise::bitwriter::convert_to_code_pad_to_byte;
+use crate::bitwise::bitwriter::BufferBitWriter;
 
 use crate::block::block_encoder::crc_as_bytes;
 
@@ -12,7 +13,6 @@ use std::thread;
 
 use crate::bitwise::bitreader::BitReader;
 use crate::bitwise::bitwriter::BitWriter;
-use crate::bitwise::bitwriter::BitWriterImpl;
 use crate::block::block_decoder::decode_block;
 use crate::block::block_encoder::generate_block_data;
 use crate::block::crc32::crc32;
@@ -23,6 +23,129 @@ use super::block::rle::rle;
 use super::block::rle::rle_augment;
 use super::block::rle::rle_total_size;
 use super::block::symbol_statistics::EncodingStrategy;
+
+/// Encoder to bzip2 encode a stream.
+/// ```rust
+/// let num_threads = 4;
+/// let mut encoder = Encoder::new(in_file, encoding_strategy, num_threads);
+/// std::io::copy(&mut encoder, &mut out_file)?;
+/// ```
+pub struct Encoder<T: Read> {
+    reader: T,
+    num_threads: usize,
+    encoding_strategy: EncodingStrategy,
+    bit_writer: BufferBitWriter,
+    total_crc: u32,
+    finalized: bool,
+    encoded: bool,
+    initialized: bool,
+}
+
+impl<T> Encoder<T>
+where
+    T: Read,
+{
+    pub fn new(reader: T, encoding_strategy: EncodingStrategy, num_threads: usize) -> Self {
+        Encoder {
+            reader,
+            num_threads,
+            encoding_strategy,
+            bit_writer: Default::default(),
+            total_crc: 0,
+            finalized: false,
+            encoded: false,
+            initialized: false,
+        }
+    }
+}
+
+impl<T> Read for Encoder<T>
+where
+    T: Read,
+{
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        const RLE_LIMIT: usize = 900_000;
+
+        let mut worker_threads = (0..self.num_threads)
+            .map(|num| WorkerThread::spawn(&format!("Thread {}", num), self.encoding_strategy))
+            .collect::<Vec<_>>();
+
+        if !self.initialized {
+            self.bit_writer.write_bits(&file_header()).unwrap();
+            self.initialized = true;
+        }
+
+        while !self.finalized && !self.encoded {
+            if self.bit_writer.content() > buf.len() {
+                break;
+            }
+            for worker_thread in worker_threads.iter_mut() {
+                let mut buf = vec![];
+                let mut rle_data = vec![];
+                let mut rle_total_count = 0;
+                let mut rle_count = 0;
+                let mut rle_last_char = None;
+                while rle_total_count < RLE_LIMIT {
+                    // RLE can blow up 4chars to 5, hence we keep a safety margin
+                    let to_take = (RLE_LIMIT - rle_data.len()) * 4 / 5;
+                    let mut buf_current = vec![];
+                    if let Ok(size) = self
+                        .reader
+                        .by_ref()
+                        .take(to_take as u64)
+                        .read_to_end(&mut buf_current)
+                    {
+                        if size == 0 {
+                            self.finalized = true;
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                    let rle_result = rle(&buf_current, rle_count, rle_last_char);
+                    let mut rle_next = rle_result.data;
+                    let rle_next_count = rle_result.counter;
+                    let rle_next_char = rle_result.last_byte;
+
+                    let next_data_len = rle_data.len() + rle_next.len();
+                    rle_total_count = rle_total_size(next_data_len, rle_next_count, rle_next_char);
+
+                    rle_data.append(&mut rle_next);
+                    buf.append(&mut buf_current);
+                    rle_count = rle_next_count;
+                    rle_last_char = rle_next_char;
+                }
+
+                if buf.len() == 0 {
+                    break;
+                }
+
+                let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
+                let computed_crc = crc32(&buf);
+                worker_thread.send_work((computed_crc, rle_total));
+            }
+
+            for worker_thread in worker_threads.iter_mut() {
+                if worker_thread.pending {
+                    worker_thread.flush_work_buffer(&mut self.bit_writer, &mut self.total_crc);
+                }
+            }
+        }
+
+        if self.finalized && !self.encoded {
+            self.bit_writer
+                .write_bits(&stream_footer(self.total_crc))
+                .unwrap();
+            self.bit_writer.finalize().unwrap();
+            self.encoded = true;
+        }
+
+        let res = self.bit_writer.pull(buf.len());
+        buf[0..res.len()].copy_from_slice(&res);
+
+        Ok(res.len())
+    }
+}
 
 fn stream_footer(crc: u32) -> Vec<Bit> {
     let mut out = vec![];
@@ -98,85 +221,6 @@ impl WorkerThread {
         self.pending = true;
         self.send_work.send(work_to_send).unwrap();
     }
-}
-
-/// Encode a stream into a writer. Takes a reader and a writer (i.e. two instances of [std::fs::File]).
-/// The number of threads and the encoding strategy can be specified.
-pub fn encode_stream(
-    mut read: impl Read,
-    mut writer: impl Write,
-    num_threads: usize,
-    encoding_strategy: EncodingStrategy,
-) {
-    let mut bit_writer = BitWriterImpl::from_writer(&mut writer);
-    const RLE_LIMIT: usize = 900_000;
-    let mut total_crc: u32 = 0;
-
-    let mut worker_threads = (0..num_threads)
-        .map(|num| WorkerThread::spawn(&format!("Thread {}", num), encoding_strategy))
-        .collect::<Vec<_>>();
-
-    bit_writer.write_bits(&file_header()).unwrap();
-
-    let mut finalize = false;
-    loop {
-        if finalize {
-            break;
-        }
-        for worker_thread in worker_threads.iter_mut() {
-            let mut buf = vec![];
-            let mut rle_data = vec![];
-            let mut rle_total_count = 0;
-            let mut rle_count = 0;
-            let mut rle_last_char = None;
-            while rle_total_count < RLE_LIMIT {
-                // RLE can blow up 4chars to 5, hence we keep a safety margin
-                let to_take = (RLE_LIMIT - rle_data.len()) * 4 / 5;
-                let mut buf_current = vec![];
-                if let Ok(size) = read
-                    .by_ref()
-                    .take(to_take as u64)
-                    .read_to_end(&mut buf_current)
-                {
-                    if size == 0 {
-                        finalize = true;
-                        break;
-                    }
-                } else {
-                    break;
-                }
-                let rle_result = rle(&buf_current, rle_count, rle_last_char);
-                let mut rle_next = rle_result.data;
-                let rle_next_count = rle_result.counter;
-                let rle_next_char = rle_result.last_byte;
-
-                let next_data_len = rle_data.len() + rle_next.len();
-                rle_total_count = rle_total_size(next_data_len, rle_next_count, rle_next_char);
-
-                rle_data.append(&mut rle_next);
-                buf.append(&mut buf_current);
-                rle_count = rle_next_count;
-                rle_last_char = rle_next_char;
-            }
-
-            if buf.len() == 0 {
-                break;
-            }
-
-            let rle_total = rle_augment(&rle_data, rle_count, rle_last_char);
-            let computed_crc = crc32(&buf);
-            worker_thread.send_work((computed_crc, rle_total));
-        }
-
-        for worker_thread in worker_threads.iter_mut() {
-            if worker_thread.pending {
-                worker_thread.flush_work_buffer(&mut bit_writer, &mut total_crc);
-            }
-        }
-    }
-
-    bit_writer.write_bits(&stream_footer(total_crc)).unwrap();
-    bit_writer.finalize().unwrap();
 }
 
 fn read_file_header(mut bit_reader: impl BitReader) -> Result<(), ()> {
