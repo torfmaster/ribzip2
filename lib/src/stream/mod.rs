@@ -26,9 +26,18 @@ use super::block::symbol_statistics::EncodingStrategy;
 
 /// Encoder to bzip2 encode a stream.
 /// ```rust
+/// use libribzip2::EncodingStrategy;
+/// use libribzip2::stream::Encoder;
+/// use std::io::Cursor;
+///
 /// let num_threads = 4;
-/// let mut encoder = Encoder::new(in_file, encoding_strategy, num_threads);
-/// std::io::copy(&mut encoder, &mut out_file)?;
+/// let encoding_strategy = EncodingStrategy::Single;
+///
+/// let reader = Cursor::new(vec![1, 2, 3, 4]);
+/// let mut writer = vec![];
+///
+/// let mut encoder = Encoder::new(reader, encoding_strategy, num_threads);
+/// std::io::copy(&mut encoder, &mut writer).unwrap();
 /// ```
 pub struct Encoder<T: Read> {
     reader: T,
