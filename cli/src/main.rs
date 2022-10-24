@@ -1,4 +1,4 @@
-use libribzip2::stream::{decode_stream, encode_stream};
+use libribzip2::stream::{decode_stream, Encoder};
 use libribzip2::EncodingStrategy;
 use num_cpus;
 use std::fmt;
@@ -119,7 +119,8 @@ fn try_main(opt: Opt) -> Result<(), FileError> {
                     },
                 };
                 let threads_val = threads.unwrap_or(num_cpus::get());
-                encode_stream(&mut in_file, &mut out_file, threads_val, encoding_strategy);
+                let mut encoder = Encoder::new(in_file, encoding_strategy, threads_val);
+                std::io::copy(&mut encoder, &mut out_file).unwrap();
             }
         }
     }

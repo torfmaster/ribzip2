@@ -144,6 +144,58 @@ pub fn increment_symbol(input: Vec<Bit>) -> Vec<Bit> {
     let len = input.len();
     convert_to_code_pad_to_n_bits(convert_to_number(&input) + 1, len)
 }
+
+#[derive(Default)]
+pub struct BufferBitWriter {
+    pending_bits: Vec<Bit>,
+    buffer: Vec<u8>,
+}
+
+impl BufferBitWriter {
+    pub fn pull(&mut self, limit: usize) -> Vec<u8> {
+        let how_many = if limit > self.buffer.len() {
+            self.buffer.len()
+        } else {
+            limit
+        };
+        let out = self.buffer[0..how_many].to_vec();
+        let out2 = self.buffer[how_many..self.buffer.len()].to_vec();
+        self.buffer = out2;
+
+        out
+    }
+
+    pub fn content(&self) -> usize {
+        self.buffer.len()
+    }
+}
+
+impl BitWriter for BufferBitWriter {
+    fn write_bits(&mut self, bits_to_write: &[Bit]) -> Result<(), ()> {
+        self.pending_bits.append(&mut bits_to_write.to_vec());
+        let mut chunks = self.pending_bits.chunks_exact(8);
+        for chunk in &mut chunks {
+            let number = convert_to_number(chunk);
+            self.buffer.push(number as u8);
+        }
+        self.pending_bits = chunks.remainder().to_vec();
+        Ok(())
+    }
+
+    fn finalize(&mut self) -> Result<(), ()> {
+        if self.pending_bits.is_empty() {
+            return Ok(());
+        }
+        let mut trailing_zeros = vec![Bit::Zero; 8 - self.pending_bits.len()];
+        self.pending_bits.append(&mut trailing_zeros);
+        let byte = convert_to_number(&self.pending_bits);
+        self.buffer.push(byte as u8);
+        self.pending_bits.clear();
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
