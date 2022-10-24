@@ -261,6 +261,19 @@ fn what_next(mut bit_reader: impl BitReader) -> Result<BlockType, ()> {
     }
 }
 
+/// Encode a stream into a writer. Takes a reader and a writer (i.e. two instances of [std::fs::File]).
+/// The number of threads and the encoding strategy can be specified.
+#[deprecated]
+pub fn encode_stream(
+    read: impl Read,
+    mut writer: impl Write,
+    num_threads: usize,
+    encoding_strategy: EncodingStrategy,
+) {
+    let mut encoder = Encoder::new(read, encoding_strategy, num_threads);
+    std::io::copy(&mut encoder, &mut writer).unwrap();
+}
+
 /// Decode a stream into a writer. Takes a reader and a writer (i.e. two instances of [std::fs::File])
 pub fn decode_stream(mut reader: impl Read, mut writer: impl Write) -> Result<(), ()> {
     let mut bit_reader = BitReaderImpl::from_reader(&mut reader);
